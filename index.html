@@ -838,72 +838,100 @@
             modeBadge.innerHTML = ``;
         }
 
-        nextQuestion();
+    // Controlla se c'è una domanda corrente salvata nel localStorage da ripristinare
+    let keys = getStorageKeys();
+    let savedCurrentQ = localStorage.getItem(keys.currentQ);
+    
+    if (savedCurrentQ && savedCurrentQ !== "null" && savedCurrentQ !== "undefined") {
+        try {
+            currentQuestion = JSON.parse(savedCurrentQ);
+            displayCurrentQuestion(); // Mostra la domanda salvata senza consumarne una nuova
+            return;
+        } catch(e) {}
     }
 
-    function saveProgress() {
+    nextQuestion();
+}
+
+function displayCurrentQuestion() {
+    isWaitingForNext = false;
+    document.getElementById('feedbackBox').style.display = 'none';
+    document.getElementById('submitBtn').innerText = "Conferma Risposta";
+
+    for (let i = 0; i < 3; i++) {
+        const label = document.getElementById(`label${i}`);
+        label.classList.remove('correct-highlight', 'incorrect-highlight');
+        const radio = label.querySelector('input');
+        radio.checked = false;
+        radio.disabled = false;
+    }
+
+    const imgElement = document.getElementById('questionImage');
+    if (currentQuestion && currentQuestion.immagine) {
+        imgElement.style.display = 'inline-block';
+        imgElement.src = currentQuestion.immagine;
+        
+        imgElement.onerror = function() {
+            let currentSrc = imgElement.src;
+            if (currentSrc.endsWith('.jpg')) {
+                imgElement.src = currentSrc.replace('.jpg', '.JPG');
+            } else if (currentSrc.endsWith('.JPG')) {
+                imgElement.src = currentSrc.replace('.JPG', '.png');
+            } else {
+                imgElement.style.display = 'none';
+            }
+        };
+    } else {
+        imgElement.src = "";
+        imgElement.style.display = 'none';
+    }
+
+    document.getElementById('questionText').innerText = currentQuestion ? currentQuestion.domanda : "";
+    document.getElementById('opt0').innerText = currentQuestion ? currentQuestion.opzioni[0] : "";
+    document.getElementById('opt1').innerText = currentQuestion ? currentQuestion.opzioni[1] : "";
+    document.getElementById('opt2').innerText = currentQuestion ? currentQuestion.opzioni[2] : "";
+
+    updateStats();
+}
+
+function nextQuestion() {
+    isWaitingForNext = false;
+    document.getElementById('feedbackBox').style.display = 'none';
+    document.getElementById('submitBtn').innerText = "Conferma Risposta";
+
+    for (let i = 0; i < 3; i++) {
+        const label = document.getElementById(`label${i}`);
+        label.classList.remove('correct-highlight', 'incorrect-highlight');
+        const radio = label.querySelector('input');
+        radio.checked = false;
+        radio.disabled = false;
+    }
+
+    if (questionsPool.length === 0) {
         let keys = getStorageKeys();
         if (!isReviewMode) {
-            localStorage.setItem(keys.pool, JSON.stringify(questionsPool));
-            localStorage.setItem(keys.errors, errorCount);
-            localStorage.setItem(keys.currentQ, JSON.stringify(currentQuestion)); // <__ Aggiunto
+            localStorage.removeItem(keys.pool);
+            localStorage.removeItem(keys.currentQ); // Pulisci anche la corrente
         }
-        localStorage.setItem(keys.history, JSON.stringify(errorHistory));
-        updateErrorUI();
+        
+        let messageTitle = isReviewMode ? "🎉 Ripasso Completato!" : "🎉 Complimenti!";
+        let messageBody = isReviewMode 
+            ? `Hai ripassato e superato con successo tutte le domande sbagliate del file ${currentFileKey}!` 
+            : `Hai risposto correttamente a tutte le domande del file ${currentFileKey}!`;
+
+        document.getElementById('quiz-section').innerHTML = `
+            <h2>${messageTitle} ${currentName}</h2>
+            <p>${messageBody}</p>
+            <br>
+            <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
+        `;
+        return;
     }
 
-    function parseTrueFalse(val) {
-        if (typeof val === 'boolean') return val;
-        if (typeof val === 'number') return val === 1;
-        if (typeof val === 'string') {
-            const v = val.trim().toLowerCase();
-            return v === 'v' || v === 'vero' || v === 'true' || v === '1' || v === 'si' || v === 'sì';
-        }
-        return false;
-    }
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    function nextQuestion() {
-        isWaitingForNext = false;
-        document.getElementById('feedbackBox').style.display = 'none';
-        document.getElementById('submitBtn').innerText = "Conferma Risposta";
-
-        for (let i = 0; i < 3; i++) {
-            const label = document.getElementById(`label${i}`);
-            label.classList.remove('correct-highlight', 'incorrect-highlight');
-            const radio = label.querySelector('input');
-            radio.checked = false;
-            radio.disabled = false;
-        }
-
-        if (questionsPool.length === 0) {
-            let keys = getStorageKeys();
-            if (!isReviewMode) {
-                localStorage.removeItem(keys.pool);
-            }
-            
-            let messageTitle = isReviewMode ? "🎉 Ripasso Completato!" : "🎉 Complimenti!";
-            let messageBody = isReviewMode 
-                ? `Hai ripassato e superato con successo tutte le domande sbagliate del file ${currentFileKey}!` 
-                : `Hai risposto correttamente a tutte le domande del file ${currentFileKey}!`;
-
-            document.getElementById('quiz-section').innerHTML = `
-                <h2>${messageTitle} ${currentName}</h2>
-                <p>${messageBody}</p>
-                <br>
-                <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
-            `;
-            return;
-        }
-
-        currentQuestion = questionsPool.shift();
-        saveProgress();
+    currentQuestion = questionsPool.shift();
+    saveProgress();
+    displayCurrentQuestion();
+}
 
         const imgElement = document.getElementById('questionImage');
         if (currentQuestion.immagine) {
