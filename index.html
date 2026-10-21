@@ -222,10 +222,9 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>Simulatore Quiz Nautica</h1>
-
+    
     <!-- 1. SEZIONE GESTIONE ALLIEVI -->
     <div id="section-user" class="section active">
         <h3>Gestione Allievi</h3>
@@ -292,8 +291,7 @@
 </div>
 
 <script>
-    const FILE_EXCEL = "quiz fac.xlsx";
-
+    const FILE_EXCEL = "quiz_fac.xlsx";
     const App = {
         utenti: [],
         utenteCorrente: "",
@@ -302,12 +300,10 @@
         domandaCorrente: null,
         inAttesaProssima: false,
         modalitaRipasso: false,
-
         init() {
             let dbRaw = localStorage.getItem("nautica_utenti");
             this.utenti = dbRaw ? JSON.parse(dbRaw) : ["Mario Rossi", "Luigi Bianchi"];
             this.aggiornaSelectUtenti();
-
             let salvatoUtente = localStorage.getItem("nautica_utente_corrente");
             if (salvatoUtente && this.utenti.includes(salvatoUtente)) {
                 this.utenteCorrente = salvatoUtente;
@@ -317,12 +313,10 @@
                 this.mostraSezione("section-user");
             }
         },
-
         mostraSezione(idSezione) {
             document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
             document.getElementById(idSezione).classList.add("active");
         },
-
         aggiornaSelectUtenti() {
             let sel = document.getElementById("userSelect");
             sel.innerHTML = '<option value="">-- Seleziona dalla lista --</option>';
@@ -333,7 +327,6 @@
                 sel.appendChild(opt);
             });
         },
-
         selezionaAllievo() {
             let nome = document.getElementById("userSelect").value;
             if (!nome) {
@@ -342,7 +335,6 @@
             }
             this.impostaUtente(nome);
         },
-
         aggiungiAllievo() {
             let input = document.getElementById("newNameInput");
             let nome = input.value.trim();
@@ -360,7 +352,6 @@
             this.aggiornaSelectUtenti();
             this.impostaUtente(nome);
         },
-
         eliminaAllievo() {
             let sel = document.getElementById("userSelect");
             let nome = sel.value;
@@ -380,26 +371,22 @@
                 alert("Allievo eliminato.");
             }
         },
-
         impostaUtente(nome) {
             this.utenteCorrente = nome;
             localStorage.setItem("nautica_utente_corrente", nome);
             this.caricaDatiUtente();
             this.mostraSezione("section-menu");
         },
-
         cambiaAllievo() {
             localStorage.removeItem("nautica_utente_corrente");
             this.utenteCorrente = "";
             document.getElementById("userSelect").value = "";
             this.mostraSezione("section-user");
         },
-
         tornaAlMenu() {
             this.caricaDatiUtente();
             this.mostraSezione("section-menu");
         },
-
         getKeys() {
             return {
                 pool: `nautica_pool_${this.utenteCorrente}`,
@@ -407,19 +394,16 @@
                 errori: `nautica_err_${this.utenteCorrente}`
             };
         },
-
         caricaDatiUtente() {
             document.getElementById("displayUserMenu").textContent = `Allievo: ${this.utenteCorrente}`;
             let keys = this.getKeys();
             let errRaw = localStorage.getItem(keys.errori);
             this.cronologiaErrori = errRaw ? JSON.parse(errRaw) : [];
-
             let count = this.cronologiaErrori.length;
             document.getElementById("countErrori").textContent = count;
             document.getElementById("btnVisualizzaErrori").textContent = `📖 Visualizza Elenco Domande Errate (${count})`;
             document.getElementById("btnRipassoErrori").style.display = count > 0 ? "inline-block" : "none";
         },
-
         async scaricaEProcessaExcel(callback) {
             try {
                 let res = await fetch(FILE_EXCEL);
@@ -428,31 +412,9 @@
                 let wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
                 let sheet = wb.Sheets[wb.SheetNames[0]];
                 let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                let tempPool = [];
-                rows.forEach(r => {
-                    if (r.length >= 7 && r[0]) {
-                        let v1 = this.parseTF(r[2]), v2 = this.parseTF(r[4]), v3 = this.parseTF(r[6]);
-                        let corr = v1 ? 0 : (v2 ? 1 : (v3 ? 2 : -1));
-                        if (corr !== -1) {
-                            let img = "";
-                            if (r[7]) {
-                                let val = String(r[7]).trim();
-                                if (!val.includes('.')) val += ".jpg";
-                                img = "immagini/" + val;
-                            }
-                            tempPool.push({
-                                domanda: r[0],
-                                opzioni: [r[1], r3 ? r[3] : "", r[5] ? r[5] : ""], // Compatibilità opzioni
-                                corretta: corr,
-                                immagine: img
-                            });
-                        }
-                    }
-                });
-                // Riscriviamo pulendo opzioni vuote se necessario
-                tempPool = rows.map(r => {
-                    if (r.length >= 7 && r[0]) {
+                
+                let tempPool = rows.map(r => {
+                    if (r && r.length >= 7 && r[0]) {
                         let v1 = this.parseTF(r[2]), v2 = this.parseTF(r[4]), v3 = this.parseTF(r[6]);
                         let corr = v1 ? 0 : (v2 ? 1 : (v3 ? 2 : -1));
                         if (corr !== -1) {
@@ -460,7 +422,7 @@
                             if (img && !img.includes('.')) img += ".jpg";
                             return {
                                 domanda: r[0],
-                                opzioni: [r[1], r[3], r[5]],
+                                opzioni: [r[1] || "", r[3] || "", r[5] || ""],
                                 corretta: corr,
                                 immagine: img ? "immagini/" + img : ""
                             };
@@ -473,10 +435,9 @@
                 this.poolDomande = tempPool;
                 if (callback) callback();
             } catch (e) {
-                alert("Errore nel caricamento del file Excel dei quiz. Assicurati che 'quiz fac.xlsx' sia presente.");
+                alert("Errore nel caricamento del file Excel dei quiz. Assicurati che 'quiz_fac.xlsx' sia presente.");
             }
         },
-
         parseTF(val) {
             if (typeof val === 'boolean') return val;
             if (typeof val === 'number') return val === 1;
@@ -486,25 +447,21 @@
             }
             return false;
         },
-
         mescolaArray(arr) {
             for (let i = arr.length - 1; i > 0; i--) {
                 let j = Math.floor(Math.random() * (i + 1));
                 [arr[i], arr[j]] = [arr[j], arr[i]];
             }
         },
-
         avviaQuizCompleto() {
             this.modalitaRipasso = false;
             let keys = this.getKeys();
             let poolSalvato = localStorage.getItem(keys.pool);
-
             if (poolSalvato) {
                 try {
                     this.poolDomande = JSON.parse(poolSalvato);
                 } catch(e) { this.poolDomande = []; }
             }
-
             if (!this.poolDomande || this.poolDomande.length === 0) {
                 this.scaricaEProcessaExcel(() => {
                     this.salvaStatoQuiz();
@@ -514,7 +471,6 @@
                 this.iniziaSessioneQuiz();
             }
         },
-
         avviaRipassoErrori() {
             if (this.cronologiaErrori.length === 0) {
                 alert("Nessun errore da ripassare.");
@@ -533,13 +489,11 @@
             this.mescolaArray(this.poolDomande);
             this.iniziaSessioneQuiz();
         },
-
         iniziaSessioneQuiz() {
             this.mostraSezione("section-quiz");
             document.getElementById("displayUserQuiz").textContent = `Allievo: ${this.utenteCorrente}`;
             let badge = document.getElementById("badgeModalita");
             badge.innerHTML = this.modalitaRipasso ? `<span class="badge-mode">🔄 MODALITÀ RIPASSO ERRORI</span>` : "";
-
             let keys = this.getKeys();
             let currSalvata = localStorage.getItem(keys.corrente);
             if (currSalvata && currSalvata !== "null" && !this.modalitaRipasso) {
@@ -551,12 +505,10 @@
             }
             this.prossimaDomanda();
         },
-
         prossimaDomanda() {
             this.inAttesaProssima = false;
             document.getElementById("boxFeedback").style.display = "none";
             document.getElementById("btnConferma").textContent = "Conferma Risposta";
-
             for (let i = 0; i < 3; i++) {
                 let lbl = document.getElementById(`lblOpt${i}`);
                 lbl.classList.remove("correct-highlight", "incorrect-highlight");
@@ -564,7 +516,6 @@
                 r.checked = false;
                 r.disabled = false;
             }
-
             if (this.poolDomande.length === 0) {
                 let keys = this.getKeys();
                 if (!this.modalitaRipasso) {
@@ -578,12 +529,10 @@
                 `;
                 return;
             }
-
             this.domandaCorrente = this.poolDomande.shift();
             this.salvaStatoQuiz();
             this.mostraDomandaCorrente();
         },
-
         mostraDomandaCorrente() {
             let img = document.getElementById("imgDomanda");
             if (this.domandaCorrente.immagine) {
@@ -594,7 +543,6 @@
                 img.style.display = "none";
                 img.src = "";
             }
-
             document.getElementById("txtDomanda").textContent = this.domandaCorrente.domanda;
             for (let i = 0; i < 3; i++) {
                 let span = document.getElementById(`spanOpt${i}`);
@@ -608,7 +556,6 @@
             }
             this.aggiornaStatistiche();
         },
-
         salvaStatoQuiz() {
             if (!this.modalitaRipasso) {
                 let keys = this.getKeys();
@@ -617,7 +564,6 @@
                 localStorage.setItem(keys.errori, JSON.stringify(this.cronologiaErrori));
             }
         },
-
         gestisciAzione() {
             if (this.inAttesaProssima) {
                 this.prossimaDomanda();
@@ -625,35 +571,28 @@
                 this.verificaRisposta();
             }
         },
-
         verificaRisposta() {
             let sel = document.querySelector('input[name="risposta"]:checked');
             if (!sel) {
                 alert("Seleziona una risposta!");
                 return;
             }
-
             let scelta = parseInt(sel.value);
             let corretta = this.domandaCorrente.corretta;
             let feedback = document.getElementById("boxFeedback");
-
             for (let i = 0; i < 3; i++) {
                 document.querySelector(`#lblOpt${i} input`).disabled = true;
             }
-
             document.getElementById(`lblOpt${corretta}`).classList.add("correct-highlight");
             if (scelta !== corretta) {
                 document.getElementById(`lblOpt${scelta}`).classList.add("incorrect-highlight");
             }
-
             this.inAttesaProssima = true;
             document.getElementById("btnConferma").textContent = "Prossima Domanda ➔";
-
             if (scelta === corretta) {
                 feedback.className = "feedback correct";
                 feedback.textContent = "Esatto!";
                 feedback.style.display = "block";
-
                 if (this.modalitaRipasso) {
                     this.cronologiaErrori = this.cronologiaErrori.filter(e => e.domanda !== this.domandaCorrente.domanda);
                 }
@@ -661,7 +600,6 @@
                 feedback.className = "feedback incorrect";
                 feedback.textContent = "Errato! La risposta corretta è evidenziata in verde.";
                 feedback.style.display = "block";
-
                 let esistegià = this.cronologiaErrori.some(e => e.domanda === this.domandaCorrente.domanda);
                 if (!esistegià) {
                     this.cronologiaErrori.push({
@@ -674,22 +612,18 @@
                 }
                 this.poolDomande.push(this.domandaCorrente);
             }
-
             this.salvaStatoQuiz();
             this.aggiornaStatistiche();
             this.caricaDatiUtente();
         },
-
         aggiornaStatistiche() {
             let rimanenti = this.inAttesaProssima ? this.poolDomande.length : this.poolDomande.length + 1;
             document.getElementById("statsQuiz").textContent = `Domande rimanenti: ${rimanenti} | ❌ Errori registrati: ${this.cronologiaErrori.length}`;
         },
-
         mostraElencoErrori() {
             document.getElementById("lblNomeErrori").textContent = this.utenteCorrente;
             let container = document.getElementById("containerListaErrori");
             container.innerHTML = "";
-
             if (this.cronologiaErrori.length === 0) {
                 container.innerHTML = "<p>Nessun errore registrato per questo allievo. Ottimo lavoro!</p>";
             } else {
@@ -709,9 +643,7 @@
             this.mostraSezione("section-errori");
         }
     };
-
     window.onload = () => App.init();
-
     // Gestione tasto Invio rapido
     document.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
@@ -729,6 +661,5 @@
         }
     });
 </script>
-
 </body>
 </html>
