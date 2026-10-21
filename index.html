@@ -378,7 +378,7 @@
 </div>
 
 <script>
-    const DEFAULT_EXCEL_FILENAME = "quiz fac.xlsx";
+    const DEFAULT_EXCEL_FILENAME = "generatore quiz nautica ultimo.xlsx";
 
     let userDatabase = [];
     let currentName = "";
@@ -447,7 +447,8 @@
     }
 
     function addNewUser() {
-        const newName = document.getElementById('newNameInput').value.trim();
+        const inputElement = document.getElementById('newNameInput');
+        const newName = inputElement ? inputElement.value.trim() : "";
 
         if (!newName) {
             alert("Inserisci il Nome e Cognome del nuovo allievo!");
@@ -463,7 +464,7 @@
         localStorage.setItem("nautica_db_utenti", JSON.stringify(userDatabase));
 
         updateUserDropdown();
-        document.getElementById('newNameInput').value = "";
+        if (inputElement) inputElement.value = "";
 
         loginUser(newName);
     }
@@ -495,6 +496,7 @@
     }
 
     function loginUser(nome) {
+        if (!nome) return;
         currentName = nome;
         localStorage.setItem("nautica_current_name", currentName);
         
@@ -513,21 +515,41 @@
         document.getElementById('quiz-section').style.display = 'none';
         document.getElementById('review-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'none';
-        document.getElementById('file-selection-section').style.display = 'block';
         
-        document.getElementById('displayUserFile').innerText = `Allievo: ${currentName}`;
-        document.getElementById('fileNameDisplay').innerText = currentFileKey;
+        const fileSection = document.getElementById('file-selection-section');
+        if (fileSection) {
+            fileSection.style.display = 'block';
+        }
+        
+        const displayUserFile = document.getElementById('displayUserFile');
+        if (displayUserFile) {
+            displayUserFile.innerText = `Allievo: ${currentName}`;
+        }
+        
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        if (fileNameDisplay) {
+            fileNameDisplay.innerText = currentFileKey;
+        }
     }
 
     function changeUser() {
         localStorage.removeItem("nautica_current_name");
         currentName = "";
+        
         document.getElementById('quiz-section').style.display = 'none';
         document.getElementById('review-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('file-selection-section').style.display = 'none';
-        document.getElementById('user-section').style.display = 'block';
-        document.getElementById('userSelect').value = "";
+        
+        const userSection = document.getElementById('user-section');
+        if (userSection) {
+            userSection.style.display = 'block';
+        }
+        
+        const userSelect = document.getElementById('userSelect');
+        if (userSelect) {
+            userSelect.value = "";
+        }
     }
 
     function backToFileSelection() {
@@ -541,7 +563,7 @@
         updateErrorUI();
     }
 
-    /* ESPOrtazione e IMPORTAZIONE DATI LOCALSTORAGE */
+    /* ESPORTAZIONE e IMPORTAZIONE DATI LOCALSTORAGE */
     function exportData() {
         let exportObj = {};
         for (let i = 0; i < localStorage.length; i++) {
@@ -604,7 +626,7 @@
             pool: `nautica_pool_${currentName}_${safeFileKey}`,
             errors: `nautica_errors_${currentName}_${safeFileKey}`,
             history: `nautica_error_history_${currentName}_${safeFileKey}`,
-            currentQ:  `nautica_current_q_${currentName}_${safeFileKey}`// <-- Aggiunto
+            currentQ: `nautica_current_q_${currentName}_${safeFileKey}`
         };
     }
 
@@ -838,103 +860,35 @@
             modeBadge.innerHTML = ``;
         }
 
-    // Controlla se c'è una domanda corrente salvata nel localStorage da ripristinare
-    let keys = getStorageKeys();
-    let savedCurrentQ = localStorage.getItem(keys.currentQ);
-    
-    if (savedCurrentQ && savedCurrentQ !== "null" && savedCurrentQ !== "undefined") {
-        try {
-            currentQuestion = JSON.parse(savedCurrentQ);
-            displayCurrentQuestion(); // Mostra la domanda salvata senza consumarne una nuova
-            return;
-        } catch(e) {}
-    }
-
-    nextQuestion();
-}
-
-function displayCurrentQuestion() {
-    isWaitingForNext = false;
-    document.getElementById('feedbackBox').style.display = 'none';
-    document.getElementById('submitBtn').innerText = "Conferma Risposta";
-
-    for (let i = 0; i < 3; i++) {
-        const label = document.getElementById(`label${i}`);
-        label.classList.remove('correct-highlight', 'incorrect-highlight');
-        const radio = label.querySelector('input');
-        radio.checked = false;
-        radio.disabled = false;
-    }
-
-    const imgElement = document.getElementById('questionImage');
-    if (currentQuestion && currentQuestion.immagine) {
-        imgElement.style.display = 'inline-block';
-        imgElement.src = currentQuestion.immagine;
-        
-        imgElement.onerror = function() {
-            let currentSrc = imgElement.src;
-            if (currentSrc.endsWith('.jpg')) {
-                imgElement.src = currentSrc.replace('.jpg', '.JPG');
-            } else if (currentSrc.endsWith('.JPG')) {
-                imgElement.src = currentSrc.replace('.JPG', '.png');
-            } else {
-                imgElement.style.display = 'none';
-            }
-        };
-    } else {
-        imgElement.src = "";
-        imgElement.style.display = 'none';
-    }
-
-    document.getElementById('questionText').innerText = currentQuestion ? currentQuestion.domanda : "";
-    document.getElementById('opt0').innerText = currentQuestion ? currentQuestion.opzioni[0] : "";
-    document.getElementById('opt1').innerText = currentQuestion ? currentQuestion.opzioni[1] : "";
-    document.getElementById('opt2').innerText = currentQuestion ? currentQuestion.opzioni[2] : "";
-
-    updateStats();
-}
-
-function nextQuestion() {
-    isWaitingForNext = false;
-    document.getElementById('feedbackBox').style.display = 'none';
-    document.getElementById('submitBtn').innerText = "Conferma Risposta";
-
-    for (let i = 0; i < 3; i++) {
-        const label = document.getElementById(`label${i}`);
-        label.classList.remove('correct-highlight', 'incorrect-highlight');
-        const radio = label.querySelector('input');
-        radio.checked = false;
-        radio.disabled = false;
-    }
-
-    if (questionsPool.length === 0) {
         let keys = getStorageKeys();
-        if (!isReviewMode) {
-            localStorage.removeItem(keys.pool);
-            localStorage.removeItem(keys.currentQ); // Pulisci anche la corrente
-        }
+        let savedCurrentQ = localStorage.getItem(keys.currentQ);
         
-        let messageTitle = isReviewMode ? "🎉 Ripasso Completato!" : "🎉 Complimenti!";
-        let messageBody = isReviewMode 
-            ? `Hai ripassato e superato con successo tutte le domande sbagliate del file ${currentFileKey}!` 
-            : `Hai risposto correttamente a tutte le domande del file ${currentFileKey}!`;
+        if (savedCurrentQ && savedCurrentQ !== "null" && savedCurrentQ !== "undefined") {
+            try {
+                currentQuestion = JSON.parse(savedCurrentQ);
+                displayCurrentQuestion();
+                return;
+            } catch(e) {}
+        }
 
-        document.getElementById('quiz-section').innerHTML = `
-            <h2>${messageTitle} ${currentName}</h2>
-            <p>${messageBody}</p>
-            <br>
-            <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
-        `;
-        return;
+        nextQuestion();
     }
 
-    currentQuestion = questionsPool.shift();
-    saveProgress();
-    displayCurrentQuestion();
-}
+    function displayCurrentQuestion() {
+        isWaitingForNext = false;
+        document.getElementById('feedbackBox').style.display = 'none';
+        document.getElementById('submitBtn').innerText = "Conferma Risposta";
+
+        for (let i = 0; i < 3; i++) {
+            const label = document.getElementById(`label${i}`);
+            label.classList.remove('correct-highlight', 'incorrect-highlight');
+            const radio = label.querySelector('input');
+            radio.checked = false;
+            radio.disabled = false;
+        }
 
         const imgElement = document.getElementById('questionImage');
-        if (currentQuestion.immagine) {
+        if (currentQuestion && currentQuestion.immagine) {
             imgElement.style.display = 'inline-block';
             imgElement.src = currentQuestion.immagine;
             
@@ -953,12 +907,79 @@ function nextQuestion() {
             imgElement.style.display = 'none';
         }
 
-        document.getElementById('questionText').innerText = currentQuestion.domanda;
-        document.getElementById('opt0').innerText = currentQuestion.opzioni[0];
-        document.getElementById('opt1').innerText = currentQuestion.opzioni[1];
-        document.getElementById('opt2').innerText = currentQuestion.opzioni[2];
+        document.getElementById('questionText').innerText = currentQuestion ? currentQuestion.domanda : "";
+        document.getElementById('opt0').innerText = currentQuestion ? currentQuestion.opzioni[0] : "";
+        document.getElementById('opt1').innerText = currentQuestion ? currentQuestion.opzioni[1] : "";
+        document.getElementById('opt2').innerText = currentQuestion ? currentQuestion.opzioni[2] : "";
 
         updateStats();
+    }
+
+    function saveProgress() {
+        let keys = getStorageKeys();
+        if (!isReviewMode) {
+            localStorage.setItem(keys.pool, JSON.stringify(questionsPool));
+            localStorage.setItem(keys.errors, errorCount);
+            localStorage.setItem(keys.currentQ, JSON.stringify(currentQuestion));
+        }
+        localStorage.setItem(keys.history, JSON.stringify(errorHistory));
+        updateErrorUI();
+    }
+
+    function parseTrueFalse(val) {
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'number') return val === 1;
+        if (typeof val === 'string') {
+            const v = val.trim().toLowerCase();
+            return v === 'v' || v === 'vero' || v === 'true' || v === '1' || v === 'si' || v === 'sì';
+        }
+        return false;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function nextQuestion() {
+        isWaitingForNext = false;
+        document.getElementById('feedbackBox').style.display = 'none';
+        document.getElementById('submitBtn').innerText = "Conferma Risposta";
+
+        for (let i = 0; i < 3; i++) {
+            const label = document.getElementById(`label${i}`);
+            label.classList.remove('correct-highlight', 'incorrect-highlight');
+            const radio = label.querySelector('input');
+            radio.checked = false;
+            radio.disabled = false;
+        }
+
+        if (questionsPool.length === 0) {
+            let keys = getStorageKeys();
+            if (!isReviewMode) {
+                localStorage.removeItem(keys.pool);
+                localStorage.removeItem(keys.currentQ);
+            }
+            
+            let messageTitle = isReviewMode ? "🎉 Ripasso Completato!" : "🎉 Complimenti!";
+            let messageBody = isReviewMode 
+                ? `Hai ripassato e superato con successo tutte le domande sbagliate del file ${currentFileKey}!` 
+                : `Hai risposto correttamente a tutte le domande del file ${currentFileKey}!`;
+
+            document.getElementById('quiz-section').innerHTML = `
+                <h2>${messageTitle} ${currentName}</h2>
+                <p>${messageBody}</p>
+                <br>
+                <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
+            `;
+            return;
+        }
+
+        currentQuestion = questionsPool.shift();
+        saveProgress();
+        displayCurrentQuestion();
     }
 
     function handleAction() {
