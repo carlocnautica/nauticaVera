@@ -105,24 +105,6 @@
         }
         .btn-review-quiz:hover { background-color: #732d91; }
 
-        .btn-export {
-            background-color: #16a085;
-            color: white;
-            font-size: 14px;
-            padding: 8px 15px;
-            margin-top: 10px;
-        }
-        .btn-export:hover { background-color: #117864; }
-
-        .btn-import {
-            background-color: #2980b9;
-            color: white;
-            font-size: 14px;
-            padding: 8px 15px;
-            margin-top: 10px;
-        }
-        .btn-import:hover { background-color: #1f618d; }
-
         .file-info {
             background: #e8f4fd;
             padding: 10px;
@@ -263,7 +245,7 @@
 <div class="container">
     <h1>Simulatore Quiz Nautica</h1>
 
-    <!-- Sezione Selezione / Inserimento Allievi e Backup -->
+    <!-- Sezione Selezione / Inserimento Allievi -->
     <div id="user-section">
         <h3>Gestione Allievi</h3>
         
@@ -281,14 +263,6 @@
             <input type="text" id="newNameInput" placeholder="Nome e Cognome"><br>
             <button class="btn" style="background-color: #008CBA;" onclick="addNewUser()">Aggiungi e Accedi</button>
         </div>
-
-        <!-- Sezione Backup e Ripristino Progressi -->
-        <div class="section-box" style="border: 1px dashed #2980b9; background: #f0f7fb;">
-            <p><strong>💾 Trasferimento Progressi su altro dispositivo:</strong></p>
-            <button class="btn btn-export" onclick="exportData()">📥 Esporta Dati / Progressi</button>
-            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📤 Importa Dati / Progressi</button>
-            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
-        </div>
     </div>
 
     <!-- Sezione Selezione File Excel dei Quiz -->
@@ -298,20 +272,14 @@
             <button class="btn btn-secondary" onclick="changeUser()">Cambia Allievo</button>
         </div>
         
-        <h3>📂 Selezione File Excel dei Quiz</h3>
+        <h3>📂 Selezione Quiz</h3>
         
         <div class="section-box">
-            <p><strong>Usa il file predefinito o conferma l'ultimo utilizzato:</strong></p>
+            <p><strong>Conferma per procedere con il quiz:</strong></p>
             <div class="file-info">
-                File attualmente memorizzato: <b id="fileNameDisplay">quiz fac.xlsx</b>
+                File predefinito: <b id="fileNameDisplay">quiz fac.xlsx</b>
             </div>
-            <button class="btn" onclick="confirmDefaultOrLastFile()">Conferma e Procedi con questo File</button>
-        </div>
-
-        <div class="section-box">
-            <p><strong>Oppure carica un nuovo file Excel (.xlsx):</strong></p>
-            <input type="file" id="excelFile" accept=".xlsx, .xls, .csv"><br><br>
-            <button class="btn" style="background-color: #27ae60;" onclick="loadCustomExcel()">Carica e Usa Nuovo File</button>
+            <button class="btn" onclick="confirmDefaultOrLastFile()">Accedi al Menu Quiz</button>
         </div>
     </div>
 
@@ -322,10 +290,6 @@
             <button class="btn btn-secondary" onclick="changeUser()">Cambia Allievo</button>
         </div>
         
-        <div class="file-info">
-            📁 File attivo: <b id="activeFileDisplay"></b>
-        </div>
-
         <button class="btn" onclick="startQuizSessionFromMenu()">Avvia o Riprendi Quiz Completo</button><br>
 
         <!-- Pulsante Ripasso Errori -->
@@ -335,8 +299,6 @@
         
         <!-- Pulsante visualizzazione errori -->
         <button id="viewErrorsBtn" class="btn-warning" onclick="showReviewSection()">📖 Visualizza Elenco Domande Errate</button><br><br>
-
-        <button class="btn btn-secondary" onclick="backToFileSelection()" style="background-color: #f39c12;">Cambia File Excel</button>
     </div>
 
     <!-- Sezione Quiz -->
@@ -369,7 +331,7 @@
     <!-- Sezione Revisione Errori (Elenco) -->
     <div id="review-section">
         <h2>📋 Elenco Domande Sbagliate</h2>
-        <p>Qui puoi esaminare gli errori commessi da <b id="reviewUserName"></b> sul file corrente:</p>
+        <p>Qui puoi esaminare gli errori commessi da <b id="reviewUserName"></b>:</p>
         <div id="errorListContainer" style="max-height: 400px; overflow-y: auto; margin-top: 15px; padding-right: 5px;"></div>
         <br>
         <button class="btn-review-quiz" id="reviewSectionStartBtn" onclick="startErrorReviewMode()">🔄 Avvia Ripasso Interattivo</button><br><br>
@@ -378,7 +340,7 @@
 </div>
 
 <script>
-    const DEFAULT_EXCEL_FILENAME = "generatore quiz nautica ultimo.xlsx";
+    const DEFAULT_EXCEL_FILENAME = "quiz fac.xlsx";
 
     let userDatabase = [];
     let currentName = "";
@@ -411,14 +373,7 @@
         const savedName = localStorage.getItem("nautica_current_name");
         if (savedName && userDatabase.includes(savedName)) {
             currentName = savedName;
-            
-            let lastFile = localStorage.getItem("nautica_last_file_" + currentName);
-            if (lastFile) {
-                currentFileKey = lastFile;
-            } else {
-                currentFileKey = DEFAULT_EXCEL_FILENAME;
-            }
-
+            currentFileKey = DEFAULT_EXCEL_FILENAME;
             showFileSelectionSection();
         }
     };
@@ -478,7 +433,7 @@
             return;
         }
 
-        if (confirm(`Sei sicuro di voler eliminare l'allievo "${selectedName}" e tutti i suoi progressi salvati su tutti i file?`)) {
+        if (confirm(`Sei sicuro di voler eliminare l'allievo "${selectedName}" e tutti i suoi progressi salvati?`)) {
             userDatabase = userDatabase.filter(nome => nome !== selectedName);
             localStorage.setItem("nautica_db_utenti", JSON.stringify(userDatabase));
             
@@ -499,14 +454,7 @@
         if (!nome) return;
         currentName = nome;
         localStorage.setItem("nautica_current_name", currentName);
-        
-        let lastFile = localStorage.getItem("nautica_last_file_" + currentName);
-        if (lastFile) {
-            currentFileKey = lastFile;
-        } else {
-            currentFileKey = DEFAULT_EXCEL_FILENAME;
-        }
-
+        currentFileKey = DEFAULT_EXCEL_FILENAME;
         showFileSelectionSection();
     }
 
@@ -528,7 +476,7 @@
         
         const fileNameDisplay = document.getElementById('fileNameDisplay');
         if (fileNameDisplay) {
-            fileNameDisplay.innerText = currentFileKey;
+            fileNameDisplay.innerText = DEFAULT_EXCEL_FILENAME;
         }
     }
 
@@ -552,58 +500,10 @@
         }
     }
 
-    function backToFileSelection() {
-        document.getElementById('upload-section').style.display = 'none';
-        showFileSelectionSection();
-    }
-
     function exitToHome() {
         document.getElementById('quiz-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
         updateErrorUI();
-    }
-
-    /* ESPORTAZIONE e IMPORTAZIONE DATI LOCALSTORAGE */
-    function exportData() {
-        let exportObj = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if (key.startsWith("nautica_")) {
-                exportObj[key] = localStorage.getItem(key);
-            }
-        }
-        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
-        let downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        let dateStr = new Date().toISOString().slice(0, 10);
-        downloadAnchor.setAttribute("download", `quiz_nautica_backup_${dateStr}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    }
-
-    function importData(event) {
-        let file = event.target.files[0];
-        if (!file) return;
-
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                let importedObj = JSON.parse(e.target.result);
-                let keysCount = 0;
-                for (let key in importedObj) {
-                    if (key.startsWith("nautica_")) {
-                        localStorage.setItem(key, importedObj[key]);
-                        keysCount++;
-                    }
-                }
-                alert(`Ripristino completato con successo! Importate ${keysCount} voci di dati.`);
-                location.reload();
-            } catch (err) {
-                alert("Errore durante l'importazione del file JSON. Verificare che sia un file di backup valido.");
-            }
-        };
-        reader.readAsText(file);
     }
 
     document.addEventListener("keydown", function(event) {
@@ -660,57 +560,14 @@
         proceedToMenu();
     }
 
-    function loadCustomExcel() {
-        const fileInput = document.getElementById('excelFile');
-        if (fileInput.files.length === 0) {
-            alert("Seleziona prima un file Excel!");
-            return;
-        }
-
-        const file = fileInput.files[0];
-        currentFileKey = file.name;
-        localStorage.setItem("nautica_last_file_" + currentName, currentFileKey);
-
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-            isReviewMode = false;
-            
-            let keys = getStorageKeys();
-            let savedPool = localStorage.getItem(keys.pool);
-            let savedErrors = localStorage.getItem(keys.errors);
-            let savedHistory = localStorage.getItem(keys.history);
-
-            errorCount = savedErrors !== null ? parseInt(savedErrors) : 0;
-            errorHistory = savedHistory ? JSON.parse(savedHistory) : [];
-
-            if (savedPool) {
-                try {
-                    questionsPool = JSON.parse(savedPool);
-                    if (questionsPool.length > 0) {
-                        proceedToMenu();
-                        fileInput.value = "";
-                        return;
-                    }
-                } catch(err) {}
-            }
-
-            processExcelDataQuietly(e.target.result);
-            fileInput.value = "";
-        };
-
-        reader.readAsArrayBuffer(file);
-    }
-
     function proceedToMenu() {
         document.getElementById('file-selection-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
         document.getElementById('displayUser').innerText = `Allievo: ${currentName}`;
-        document.getElementById('activeFileDisplay').innerText = currentFileKey;
 
         let keys = getStorageKeys();
         let savedPool = localStorage.getItem(keys.pool);
-        if (!savedPool && currentFileKey === DEFAULT_EXCEL_FILENAME) {
+        if (!savedPool) {
             fetch(DEFAULT_EXCEL_FILENAME)
                 .then(response => {
                     if (!response.ok) throw new Error("File predefinito non trovato.");
@@ -795,21 +652,16 @@
         }
 
         if (!questionsPool || questionsPool.length === 0) {
-            if (currentFileKey === DEFAULT_EXCEL_FILENAME) {
-                fetch(DEFAULT_EXCEL_FILENAME)
-                    .then(response => response.arrayBuffer())
-                    .then(arrayBuffer => {
-                        processExcelDataQuietly(arrayBuffer);
-                        startQuizSession();
-                    })
-                    .catch(() => {
-                        alert("Nessun dato di quiz disponibile. Carica un file Excel valido.");
-                    });
-                return;
-            } else {
-                alert("Nessuna domanda disponibile nel pool. Ricarica il file Excel.");
-                return;
-            }
+            fetch(DEFAULT_EXCEL_FILENAME)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => {
+                    processExcelDataQuietly(arrayBuffer);
+                    startQuizSession();
+                })
+                .catch(() => {
+                    alert("Nessun dato di quiz disponibile. Verifica che il file predefinito sia presente.");
+                });
+            return;
         }
 
         isReviewMode = false;
@@ -820,13 +672,13 @@
         let keys = getStorageKeys();
         let savedHistory = localStorage.getItem(keys.history);
         if (!savedHistory) {
-            alert("Non ci sono errori registrati da ripassare per questo file!");
+            alert("Non ci sono errori registrati da ripassare!");
             return;
         }
 
         let parsedHistory = JSON.parse(savedHistory);
         if (parsedHistory.length === 0) {
-            alert("Complimenti! Non hai domande errate da ripassare per questo file.");
+            alert("Complimenti! Non hai domande errate da ripassare.");
             return;
         }
 
@@ -851,11 +703,11 @@
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('review-section').style.display = 'none';
         document.getElementById('quiz-section').style.display = 'block';
-        document.getElementById('displayUserQuiz').innerText = `Allievo: ${currentName} (${currentFileKey})`;
+        document.getElementById('displayUserQuiz').innerText = `Allievo: ${currentName}`;
         
         const modeBadge = document.getElementById('modeBadgeContainer');
         if (isReviewMode) {
-            modeBadge.innerHTML = `<span class="badge-mode">🔄 MODALITÀ RIPASSO ERRORI (${currentFileKey})</span>`;
+            modeBadge.innerHTML = `<span class="badge-mode">🔄 MODALITÀ RIPASSO ERRORI</span>`;
         } else {
             modeBadge.innerHTML = ``;
         }
@@ -929,170 +781,4 @@
     function parseTrueFalse(val) {
         if (typeof val === 'boolean') return val;
         if (typeof val === 'number') return val === 1;
-        if (typeof val === 'string') {
-            const v = val.trim().toLowerCase();
-            return v === 'v' || v === 'vero' || v === 'true' || v === '1' || v === 'si' || v === 'sì';
-        }
-        return false;
-    }
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    function nextQuestion() {
-        isWaitingForNext = false;
-        document.getElementById('feedbackBox').style.display = 'none';
-        document.getElementById('submitBtn').innerText = "Conferma Risposta";
-
-        for (let i = 0; i < 3; i++) {
-            const label = document.getElementById(`label${i}`);
-            label.classList.remove('correct-highlight', 'incorrect-highlight');
-            const radio = label.querySelector('input');
-            radio.checked = false;
-            radio.disabled = false;
-        }
-
-        if (questionsPool.length === 0) {
-            let keys = getStorageKeys();
-            if (!isReviewMode) {
-                localStorage.removeItem(keys.pool);
-                localStorage.removeItem(keys.currentQ);
-            }
-            
-            let messageTitle = isReviewMode ? "🎉 Ripasso Completato!" : "🎉 Complimenti!";
-            let messageBody = isReviewMode 
-                ? `Hai ripassato e superato con successo tutte le domande sbagliate del file ${currentFileKey}!` 
-                : `Hai risposto correttamente a tutte le domande del file ${currentFileKey}!`;
-
-            document.getElementById('quiz-section').innerHTML = `
-                <h2>${messageTitle} ${currentName}</h2>
-                <p>${messageBody}</p>
-                <br>
-                <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
-            `;
-            return;
-        }
-
-        currentQuestion = questionsPool.shift();
-        saveProgress();
-        displayCurrentQuestion();
-    }
-
-    function handleAction() {
-        if (isWaitingForNext) {
-            nextQuestion();
-        } else {
-            checkAnswer();
-        }
-    }
-
-    function checkAnswer() {
-        const selected = document.querySelector('input[name="answer"]:checked');
-        if (!selected) {
-            alert("Seleziona una risposta!");
-            return;
-        }
-
-        const userChoice = parseInt(selected.value);
-        const correctAnswer = currentQuestion.corretta;
-        const feedbackBox = document.getElementById('feedbackBox');
-
-        for (let i = 0; i < 3; i++) {
-            document.querySelector(`#label${i} input`).disabled = true;
-        }
-
-        document.getElementById(`label${correctAnswer}`).classList.add('correct-highlight');
-        if (userChoice !== correctAnswer) {
-            document.getElementById(`label${userChoice}`).classList.add('incorrect-highlight');
-        }
-
-        isWaitingForNext = true;
-        document.getElementById('submitBtn').innerText = "Prossima Domanda ➔";
-
-        if (userChoice === correctAnswer) {
-            feedbackBox.className = "feedback correct";
-            feedbackBox.innerText = "Esatto! Premi Invio o clicca il pulsante per continuare.";
-            feedbackBox.style.display = 'block';
-
-            if (isReviewMode) {
-                errorHistory = errorHistory.filter(item => item.domanda !== currentQuestion.domanda);
-            }
-        } else {
-            feedbackBox.className = "feedback incorrect";
-            feedbackBox.innerText = `Errato! La risposta corretta era evidenziata in verde.`;
-            feedbackBox.style.display = 'block';
-
-            errorCount++;
-            
-            if (!errorHistory.some(item => item.domanda === currentQuestion.domanda)) {
-                errorHistory.push({
-                    domanda: currentQuestion.domanda,
-                    opzioni: currentQuestion.opzioni,
-                    rispostaData: currentQuestion.opzioni[userChoice],
-                    rispostaCorretta: currentQuestion.opzioni[correctAnswer],
-                    immagine: currentQuestion.immagine
-                });
-            }
-
-            questionsPool.push(currentQuestion);
-        }
-        
-        saveProgress();
-        updateStats();
-    }
-
-    function updateStats() {
-        const remaining = isWaitingForNext ? questionsPool.length : questionsPool.length + 1;
-        document.getElementById('stats').innerText = `Domande rimanenti nel ciclo: ${remaining} | ❌ Errori registrati: ${errorHistory.length}`;
-    }
-
-    function showReviewSection() {
-        document.getElementById('quiz-section').style.display = 'none';
-        document.getElementById('upload-section').style.display = 'none';
-        document.getElementById('reviewUserName').innerText = `${currentName} (File: ${currentFileKey})`;
-
-        let container = document.getElementById('errorListContainer');
-        container.innerHTML = "";
-
-        let keys = getStorageKeys();
-        let savedHistory = localStorage.getItem(keys.history);
-        let historyToDisplay = savedHistory ? JSON.parse(savedHistory) : errorHistory;
-
-        const reviewStartBtn = document.getElementById('reviewSectionStartBtn');
-
-        if (historyToDisplay.length === 0) {
-            container.innerHTML = "<p>Nessun errore registrato finora per questo allievo su questo file. Ottimo lavoro!</p>";
-            reviewStartBtn.style.display = 'none';
-        } else {
-            reviewStartBtn.style.display = 'inline-block';
-            historyToDisplay.forEach((err, index) => {
-                let card = document.createElement('div');
-                card.className = "error-card";
-                
-                let imgHtml = err.immagine ? `<div style="text-align:center; margin:10px 0;"><img src="${err.immagine}" style="max-width:100%; max-height:150px; border-radius:4px; border:1px solid #ccc;"></div>` : '';
-                
-                card.innerHTML = `
-                    <p class="error-q">#${index + 1} - ${err.domanda}</p>
-                    ${imgHtml}
-                    <p class="user-ans">❌ <b>Tua risposta:</b> ${err.rispostaData}</p>
-                    <p class="correct-ans">✔ <b>Risposta corretta:</b> ${err.rispostaCorretta}</p>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        document.getElementById('review-section').style.display = 'block';
-    }
-
-    function backToUploadFromReview() {
-        document.getElementById('review-section').style.display = 'none';
-        document.getElementById('upload-section').style.display = 'block';
-    }
-</script>
-
-</body>
-</html>
+        if (typeof val === 'string
