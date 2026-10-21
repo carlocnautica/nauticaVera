@@ -846,6 +846,7 @@
         if (!isReviewMode) {
             localStorage.setItem(keys.pool, JSON.stringify(questionsPool));
             localStorage.setItem(keys.errors, errorCount);
+            localStorage.setItem(keys.currentQ, JSON.stringify(currentQuestion)); // <__ Aggiunto
         }
         localStorage.setItem(keys.history, JSON.stringify(errorHistory));
         updateErrorUI();
