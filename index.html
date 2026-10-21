@@ -266,7 +266,7 @@
             <button class="btn btn-secondary" onclick="App.cambiaAllievo()">Cambia Allievo</button>
         </div>
         <div class="file-info">
-            File attivo: <b>quiz fac.xlsx</b>
+            File attivo: <b>quiz_fac.xlsx</b>
         </div>
         <button class="btn" onclick="App.avviaQuizCompleto()">Avvia o Riprendi Quiz Completo</button><br><br>
         <button id="btnRipassoErrori" class="btn-review-quiz" onclick="App.avviaRipassoErrori()" style="display: none;">
@@ -307,7 +307,7 @@
 </div>
 
 <script>
-    const FILE_EXCEL = "quiz fac.xlsx";
+    const FILE_EXCEL = "quiz_fac.xlsx";
 
     const App = {
         utenti: [],
@@ -319,7 +319,6 @@
         modalitaRipasso: false,
 
         async init() {
-            // Aspettiamo che window.FB sia caricato
             while (!window.FB) {
                 await new Promise(r => setTimeout(r, 100));
             }
@@ -512,7 +511,7 @@
                 this.poolDomande = tempPool;
                 if (callback) callback();
             } catch (e) {
-                alert("Errore nel caricamento del file Excel dei quiz. Assicurati che 'quiz fac.xlsx' sia presente.");
+                alert("Errore nel caricamento del file Excel dei quiz. Assicurati che 'quiz_fac.xlsx' sia presente.");
             }
         },
 
@@ -646,19 +645,25 @@
             let scelta = parseInt(sel.value);
             let corretta = this.domandaCorrente.corretta;
             let feedback = document.getElementById("boxFeedback");
+            
             for (let i = 0; i < 3; i++) {
                 document.querySelector(`#lblOpt${i} input`).disabled = true;
             }
+            
             document.getElementById(`lblOpt${corretta}`).classList.add("correct-highlight");
             if (scelta !== corretta) {
                 document.getElementById(`lblOpt${scelta}`).classList.add("incorrect-highlight");
             }
+            
             this.inAttesaProssima = true;
             document.getElementById("btnConferma").textContent = "Prossima Domanda ➔";
+            
             if (scelta === corretta) {
                 feedback.className = "feedback correct";
                 feedback.textContent = "Esatto!";
                 feedback.style.display = "block";
+                
+                // SE SIAMO IN RIPASSO ERRORI: Rimuoviamo l'errore dalla cronologia dell'allievo
                 if (this.modalitaRipasso) {
                     this.cronologiaErrori = this.cronologiaErrori.filter(e => e.domanda !== this.domandaCorrente.domanda);
                 }
@@ -666,6 +671,7 @@
                 feedback.className = "feedback incorrect";
                 feedback.textContent = "Errato! La risposta corretta è evidenziata in verde.";
                 feedback.style.display = "block";
+                
                 let esistegià = this.cronologiaErrori.some(e => e.domanda === this.domandaCorrente.domanda);
                 if (!esistegià) {
                     this.cronologiaErrori.push({
@@ -678,9 +684,17 @@
                 }
                 this.poolDomande.push(this.domandaCorrente);
             }
+            
+            // Salva lo stato e le modifiche (incluso la rimozione dell'errore) su Firebase
             await this.salvaStatoCloud();
+            
+            // Aggiorna contatori e statistiche istantaneamente
+            let count = this.cronologiaErrori.length;
+            document.getElementById("countErrori").textContent = count;
+            document.getElementById("btnVisualizzaErrori").textContent = `📖 Visualizza Elenco Domande Errate (${count})`;
+            document.getElementById("btnRipassoErrori").style.display = count > 0 ? "inline-block" : "none";
+            
             this.aggiornaStatistiche();
-            await this.caricaDatiUtente();
         },
 
         aggiornaStatistiche() {
