@@ -467,14 +467,17 @@
         },
 
         async salvaStatoCloud() {
-            if (!this.modalitaRipasso && this.utenteCorrente) {
+            if (this.utenteCorrente) {
                 try {
                     let ref = window.FB.doc(window.FB.db, "nautica_utenti_dati", this.utenteCorrente);
-                    await window.FB.setDoc(ref, {
-                        pool: this.poolDomande,
-                        corrente: this.domandaCorrente,
+                    let datiDaSalvare = {
                         errori: this.cronologiaErrori
-                    }, { merge: true });
+                    };
+                    if (!this.modalitaRipasso) {
+                        datiDaSalvare.pool = this.poolDomande;
+                        datiDaSalvare.corrente = this.domandaCorrente;
+                    }
+                    await window.FB.setDoc(ref, datiDaSalvare, { merge: true });
                 } catch(e) {
                     console.error("Errore salvataggio cloud:", e);
                 }
@@ -663,7 +666,6 @@
                 feedback.textContent = "Esatto!";
                 feedback.style.display = "block";
                 
-                // SE SIAMO IN RIPASSO ERRORI: Rimuoviamo l'errore dalla cronologia dell'allievo
                 if (this.modalitaRipasso) {
                     this.cronologiaErrori = this.cronologiaErrori.filter(e => e.domanda !== this.domandaCorrente.domanda);
                 }
@@ -685,10 +687,8 @@
                 this.poolDomande.push(this.domandaCorrente);
             }
             
-            // Salva lo stato e le modifiche (incluso la rimozione dell'errore) su Firebase
             await this.salvaStatoCloud();
             
-            // Aggiorna contatori e statistiche istantaneamente
             let count = this.cronologiaErrori.length;
             document.getElementById("countErrori").textContent = count;
             document.getElementById("btnVisualizzaErrori").textContent = `📖 Visualizza Elenco Domande Errate (${count})`;
@@ -728,7 +728,6 @@
 
     window.onload = () => App.init();
 
-    // Gestione tasto Invio rapido
     document.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             if (document.getElementById("section-quiz").classList.contains("active")) {
