@@ -6,19 +6,20 @@
     <title>Simulatore Quiz Nautica</title>
     <!-- Libreria per leggere i file Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <!-- Firebase SDK (Versioni compatibili con moduli) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // CONFIGURAZIONE FIREBASE
+        // CONFIGURAZIONE FIREBASE REALE
         const firebaseConfig = {
-            apiKey: "AIzaSyBySSCEkAWylHF3h2YCpHOz9aNuCnsJ40g",
+            apiKey: "AIzaSyBSSCEkAwy1HF3h2YCpHOz9aNuCnsJ40g",
             authDomain: "nautica-vera.firebaseapp.com",
             projectId: "nautica-vera",
-            storageBucket: "nautica-vera.firebasestorage.app",
-            messagingSenderId: "594158990689",
-            appId: "1:594158990689:web:ea0f896fb07228c57ac120"
+            storageBucket: "nautica-vera.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:nauticavera"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -27,6 +28,7 @@
         // Rendiamo le funzioni di Firebase accessibili all'oggetto globale App
         window.FB = { db, doc, getDoc, setDoc, updateDoc, deleteField, collection, getDocs };
     </script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -197,4 +199,537 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #
+            background: #eef2f3;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+        select, input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 90%;
+            max-width: 350px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+            margin-top: 5px;
+        }
+        .error-card {
+            background: #fff;
+            border: 1px solid #f5c6cb;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .badge-mode {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #8e44ad;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Simulatore Quiz Nautica</h1>
+    
+    <!-- 1. SEZIONE GESTIONE ALLIEVI -->
+    <div id="section-user" class="section active">
+        <h3>Gestione Allievi</h3>
+        <div class="section-box">
+            <p><strong>Seleziona un allievo esistente:</strong></p>
+            <select id="userSelect">
+                <option value="">-- Seleziona dalla lista --</option>
+            </select><br>
+            <button class="btn" onclick="App.selezionaAllievo()">Accedi con Selezionato</button>
+            <button class="btn btn-delete" onclick="App.eliminaAllievo()">Elimina Allievo</button>
+        </div>
+        <div class="section-box">
+            <p><strong>Oppure inserisci un nuovo allievo:</strong></p>
+            <input type="text" id="newNameInput" placeholder="Nome e Cognome"><br>
+            <button class="btn" style="background-color: #008CBA;" onclick="App.aggiungiAllievo()">Aggiungi e Accedi</button>
+        </div>
+    </div>
+
+    <!-- 2. SEZIONE MENU PRINCIPALE -->
+    <div id="section-menu" class="section">
+        <div class="user-info">
+            <span id="displayUserMenu">Allievo: </span>
+            <button class="btn btn-secondary" onclick="App.cambiaAllievo()">Cambia Allievo</button>
+        </div>
+        <div class="file-info">
+            File attivo: <b>quiz_fac.xlsx</b>
+        </div>
+        <button class="btn" onclick="App.avviaQuizCompleto()">Avvia o Riprendi Quiz Completo</button><br><br>
+        <button id="btnRipassoErrori" class="btn-review-quiz" onclick="App.avviaRipassoErrori()" style="display: none;">
+            🔄 Avvia Ripasso Solo Errori (<span id="countErrori">0</span>)
+        </button><br><br>
+        <button id="btnVisualizzaErrori" class="btn-warning" onclick="App.mostraElencoErrori()">📖 Visualizza Elenco Domande Errate (0)</button>
+    </div>
+
+    <!-- 3. SEZIONE QUIZ INTERATTIVO -->
+    <div id="section-quiz" class="section">
+        <div class="user-info">
+            <span id="displayUserQuiz">Allievo: </span>
+            <button class="btn btn-secondary" onclick="App.tornaAlMenu()">Menu Principale</button>
+        </div>
+        <div id="badgeModalita" style="text-align: center;"></div>
+        <div class="image-container">
+            <img id="imgDomanda" src="" alt="Figura Quiz">
+        </div>
+        <div class="question-text" id="txtDomanda">Caricamento...</div>
+        <div id="containerOpzioni">
+            <label class="option-label" id="lblOpt0"><input type="radio" name="risposta" value="0"><span id="spanOpt0"></span></label>
+            <label class="option-label" id="lblOpt1"><input type="radio" name="risposta" value="1"><span id="spanOpt1"></span></label>
+            <label class="option-label" id="lblOpt2"><input type="radio" name="risposta" value="2"><span id="spanOpt2"></span></label>
+        </div>
+        <button class="btn btn-submit" id="btnConferma" onclick="App.gestisciAzione()">Conferma Risposta</button>
+        <div id="boxFeedback" class="feedback"></div>
+        <div id="statsQuiz">Domande rimanenti: 0 | ❌ Errori registrati: 0</div>
+    </div>
+
+    <!-- 4. SEZIONE ELENCO ERRORI -->
+    <div id="section-errori" class="section">
+        <h2>📋 Elenco Domande Sbagliate</h2>
+        <p>Errori registrati per <b id="lblNomeErrori"></b>:</p>
+        <div id="containerListaErrori" style="max-height: 400px; overflow-y: auto; margin-top: 15px; padding-right: 5px;"></div>
+        <br>
+        <button class="btn" onclick="App.tornaAlMenu()">Torna al Menu Principale</button>
+    </div>
+</div>
+
+<script>
+    const FILE_EXCEL = "quiz_fac.xlsx";
+
+    const App = {
+        utenti: [],
+        utenteCorrente: "",
+        poolDomande: [],
+        cronologiaErrori: [],
+        domandaCorrente: null,
+        inAttesaProssima: false,
+        modalitaRipasso: false,
+
+        async init() {
+            // Aspettiamo che window.FB sia caricato
+            while (!window.FB) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            await this.caricaUtentiCloud();
+            let salvatoUtente = localStorage.getItem("nautica_utente_corrente");
+            if (salvatoUtente && this.utenti.includes(salvatoUtente)) {
+                this.utenteCorrente = salvatoUtente;
+                await this.caricaDatiUtente();
+                this.mostraSezione("section-menu");
+            } else {
+                this.mostraSezione("section-user");
+            }
+        },
+
+        async caricaUtentiCloud() {
+            try {
+                let ref = window.FB.doc(window.FB.db, "nautica_app", "config_utenti");
+                let snap = await window.FB.getDoc(ref);
+                if (snap.exists()) {
+                    this.utenti = snap.data().lista || ["Mario Rossi", "Luigi Bianchi"];
+                } else {
+                    this.utenti = ["Mario Rossi", "Luigi Bianchi"];
+                    await window.FB.setDoc(ref, { lista: this.utenti });
+                }
+            } catch(e) {
+                console.error("Errore caricamento utenti:", e);
+                this.utenti = ["Mario Rossi", "Luigi Bianchi"];
+            }
+            this.aggiornaSelectUtenti();
+        },
+
+        async salvaUtentiCloud() {
+            try {
+                let ref = window.FB.doc(window.FB.db, "nautica_app", "config_utenti");
+                await window.FB.setDoc(ref, { lista: this.utenti });
+            } catch(e) {
+                console.error("Errore salvataggio utenti:", e);
+            }
+        },
+
+        mostraSezione(idSezione) {
+            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+            document.getElementById(idSezione).classList.add("active");
+        },
+
+        aggiornaSelectUtenti() {
+            let sel = document.getElementById("userSelect");
+            sel.innerHTML = '<option value="">-- Seleziona dalla lista --</option>';
+            this.utenti.forEach(u => {
+                let opt = document.createElement("option");
+                opt.value = u;
+                opt.textContent = u;
+                sel.appendChild(opt);
+            });
+        },
+
+        async selezionaAllievo() {
+            let nome = document.getElementById("userSelect").value;
+            if (!nome) {
+                alert("Seleziona un allievo!");
+                return;
+            }
+            await this.impostaUtente(nome);
+        },
+
+        async aggiungiAllievo() {
+            let input = document.getElementById("newNameInput");
+            let nome = input.value.trim();
+            if (!nome) {
+                alert("Inserisci nome e cognome.");
+                return;
+            }
+            if (this.utenti.includes(nome)) {
+                alert("Esiste già un allievo con questo nome.");
+                return;
+            }
+            this.utenti.push(nome);
+            await this.salvaUtentiCloud();
+            input.value = "";
+            this.aggiornaSelectUtenti();
+            await this.impostaUtente(nome);
+        },
+
+        async eliminaAllievo() {
+            let sel = document.getElementById("userSelect");
+            let nome = sel.value;
+            if (!nome) {
+                alert("Seleziona un allievo da eliminare.");
+                return;
+            }
+            if (confirm(`Eliminare l'allievo "${nome}" e tutti i suoi dati dal cloud?`)) {
+                this.utenti = this.utenti.filter(u => u !== nome);
+                await this.salvaUtentiCloud();
+                try {
+                    let ref = window.FB.doc(window.FB.db, "nautica_utenti_dati", nome);
+                    await window.FB.setDoc(ref, { pool: [], corrente: null, errori: [] });
+                } catch(e) {}
+                this.aggiornaSelectUtenti();
+                sel.value = "";
+                alert("Allievo eliminato.");
+            }
+        },
+
+        async impostaUtente(nome) {
+            this.utenteCorrente = nome;
+            localStorage.setItem("nautica_utente_corrente", nome);
+            await this.caricaDatiUtente();
+            this.mostraSezione("section-menu");
+        },
+
+        cambiaAllievo() {
+            localStorage.removeItem("nautica_utente_corrente");
+            this.utenteCorrente = "";
+            document.getElementById("userSelect").value = "";
+            this.mostraSezione("section-user");
+        },
+
+        async tornaAlMenu() {
+            await this.caricaDatiUtente();
+            this.mostraSezione("section-menu");
+        },
+
+        async caricaDatiUtente() {
+            document.getElementById("displayUserMenu").textContent = `Allievo: ${this.utenteCorrente}`;
+            try {
+                let ref = window.FB.doc(window.FB.db, "nautica_utenti_dati", this.utenteCorrente);
+                let snap = await window.FB.getDoc(ref);
+                if (snap.exists()) {
+                    let data = snap.data();
+                    this.poolDomande = data.pool || [];
+                    this.domandaCorrente = data.corrente || null;
+                    this.cronologiaErrori = data.errori || [];
+                } else {
+                    this.poolDomande = [];
+                    this.domandaCorrente = null;
+                    this.cronologiaErrori = [];
+                }
+            } catch(e) {
+                console.error("Errore carica dati utente:", e);
+                this.cronologiaErrori = [];
+            }
+            let count = this.cronologiaErrori.length;
+            document.getElementById("countErrori").textContent = count;
+            document.getElementById("btnVisualizzaErrori").textContent = `📖 Visualizza Elenco Domande Errate (${count})`;
+            document.getElementById("btnRipassoErrori").style.display = count > 0 ? "inline-block" : "none";
+        },
+
+        async salvaStatoCloud() {
+            if (!this.modalitaRipasso && this.utenteCorrente) {
+                try {
+                    let ref = window.FB.doc(window.FB.db, "nautica_utenti_dati", this.utenteCorrente);
+                    await window.FB.setDoc(ref, {
+                        pool: this.poolDomande,
+                        corrente: this.domandaCorrente,
+                        errori: this.cronologiaErrori
+                    }, { merge: true });
+                } catch(e) {
+                    console.error("Errore salvataggio cloud:", e);
+                }
+            }
+        },
+
+        async scaricaEProcessaExcel(callback) {
+            try {
+                let res = await fetch(FILE_EXCEL);
+                if (!res.ok) throw new Error("Impossibile trovare il file excel.");
+                let buf = await res.arrayBuffer();
+                let wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+                let sheet = wb.Sheets[wb.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                let tempPool = rows.map(r => {
+                    if (r && r.length >= 7 && r[0]) {
+                        let v1 = this.parseTF(r[2]), v2 = this.parseTF(r[4]), v3 = this.parseTF(r[6]);
+                        let corr = v1 ? 0 : (v2 ? 1 : (v3 ? 2 : -1));
+                        if (corr !== -1) {
+                            let img = r[7] ? String(r[7]).trim() : "";
+                            if (img && !img.includes('.')) img += ".jpg";
+                            return {
+                                domanda: r[0],
+                                opzioni: [r[1] || "", r[3] || "", r[5] || ""],
+                                corretta: corr,
+                                immagine: img ? "immagini/" + img : ""
+                            };
+                        }
+                    }
+                    return null;
+                }).filter(Boolean);
+                this.mescolaArray(tempPool);
+                this.poolDomande = tempPool;
+                if (callback) callback();
+            } catch (e) {
+                alert("Errore nel caricamento del file Excel dei quiz. Assicurati che 'quiz_fac.xlsx' sia presente.");
+            }
+        },
+
+        parseTF(val) {
+            if (typeof val === 'boolean') return val;
+            if (typeof val === 'number') return val === 1;
+            if (typeof val === 'string') {
+                let v = val.trim().toLowerCase();
+                return ['v', 'vero', 'true', '1', 'si', 'sì'].includes(v);
+            }
+            return false;
+        },
+
+        mescolaArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        },
+
+        async avviaQuizCompleto() {
+            this.modalitaRipasso = false;
+            await this.caricaDatiUtente();
+            if (!this.poolDomande || this.poolDomande.length === 0) {
+                await this.scaricaEProcessaExcel(async () => {
+                    await this.salvaStatoCloud();
+                    this.iniziaSessioneQuiz();
+                });
+            } else {
+                this.iniziaSessioneQuiz();
+            }
+        },
+
+        avviaRipassoErrori() {
+            if (this.cronologiaErrori.length === 0) {
+                alert("Nessun errore da ripassare.");
+                return;
+            }
+            this.modalitaRipasso = true;
+            this.poolDomande = this.cronologiaErrori.map(e => {
+                let idxCorr = e.opzioni.indexOf(e.rispostaCorretta);
+                return {
+                    domanda: e.domanda,
+                    opzioni: e.opzioni,
+                    corretta: idxCorr !== -1 ? idxCorr : 0,
+                    immagine: e.immagine || ""
+                };
+            });
+            this.mescolaArray(this.poolDomande);
+            this.iniziaSessioneQuiz();
+        },
+
+        iniziaSessioneQuiz() {
+            this.mostraSezione("section-quiz");
+            document.getElementById("displayUserQuiz").textContent = `Allievo: ${this.utenteCorrente}`;
+            let badge = document.getElementById("badgeModalita");
+            badge.innerHTML = this.modalitaRipasso ? `<span class="badge-mode">🔄 MODALITÀ RIPASSO ERRORI</span>` : "";
+            if (this.domandaCorrente && !this.modalitaRipasso) {
+                this.mostraDomandaCorrente();
+                return;
+            }
+            this.prossimaDomanda();
+        },
+
+        prossimaDomanda() {
+            this.inAttesaProssima = false;
+            document.getElementById("boxFeedback").style.display = "none";
+            document.getElementById("btnConferma").textContent = "Conferma Risposta";
+            for (let i = 0; i < 3; i++) {
+                let lbl = document.getElementById(`lblOpt${i}`);
+                lbl.classList.remove("correct-highlight", "incorrect-highlight");
+                let r = lbl.querySelector("input");
+                r.checked = false;
+                r.disabled = false;
+            }
+            if (this.poolDomande.length === 0) {
+                if (!this.modalitaRipasso) {
+                    this.domandaCorrente = null;
+                    this.salvaStatoCloud();
+                }
+                document.getElementById("section-quiz").innerHTML = `
+                    <h2>🎉 Complimenti ${this.utenteCorrente}!</h2>
+                    <p>Hai completato tutte le domande con successo.</p><br>
+                    <button class="btn" onclick="location.reload()">Torna al Menu Principale</button>
+                `;
+                return;
+            }
+            this.domandaCorrente = this.poolDomande.shift();
+            this.salvaStatoCloud();
+            this.mostraDomandaCorrente();
+        },
+
+        mostraDomandaCorrente() {
+            let img = document.getElementById("imgDomanda");
+            if (this.domandaCorrente && this.domandaCorrente.immagine) {
+                img.style.display = "inline-block";
+                img.src = this.domandaCorrente.immagine;
+                img.onerror = () => { img.style.display = "none"; };
+            } else {
+                img.style.display = "none";
+                img.src = "";
+            }
+            document.getElementById("txtDomanda").textContent = this.domandaCorrente ? this.domandaCorrente.domanda : "";
+            for (let i = 0; i < 3; i++) {
+                let span = document.getElementById(`spanOpt${i}`);
+                let lbl = document.getElementById(`lblOpt${i}`);
+                if (this.domandaCorrente && this.domandaCorrente.opzioni[i]) {
+                    span.textContent = this.domandaCorrente.opzioni[i];
+                    lbl.style.display = "block";
+                } else {
+                    lbl.style.display = "none";
+                }
+            }
+            this.aggiornaStatistiche();
+        },
+
+        gestisciAzione() {
+            if (this.inAttesaProssima) {
+                this.prossimaDomanda();
+            } else {
+                this.verificaRisposta();
+            }
+        },
+
+        async verificaRisposta() {
+            let sel = document.querySelector('input[name="risposta"]:checked');
+            if (!sel) {
+                alert("Seleziona una risposta!");
+                return;
+            }
+            let scelta = parseInt(sel.value);
+            let corretta = this.domandaCorrente.corretta;
+            let feedback = document.getElementById("boxFeedback");
+            for (let i = 0; i < 3; i++) {
+                document.querySelector(`#lblOpt${i} input`).disabled = true;
+            }
+            document.getElementById(`lblOpt${corretta}`).classList.add("correct-highlight");
+            if (scelta !== corretta) {
+                document.getElementById(`lblOpt${scelta}`).classList.add("incorrect-highlight");
+            }
+            this.inAttesaProssima = true;
+            document.getElementById("btnConferma").textContent = "Prossima Domanda ➔";
+            if (scelta === corretta) {
+                feedback.className = "feedback correct";
+                feedback.textContent = "Esatto!";
+                feedback.style.display = "block";
+                if (this.modalitaRipasso) {
+                    this.cronologiaErrori = this.cronologiaErrori.filter(e => e.domanda !== this.domandaCorrente.domanda);
+                }
+            } else {
+                feedback.className = "feedback incorrect";
+                feedback.textContent = "Errato! La risposta corretta è evidenziata in verde.";
+                feedback.style.display = "block";
+                let esistegià = this.cronologiaErrori.some(e => e.domanda === this.domandaCorrente.domanda);
+                if (!esistegià) {
+                    this.cronologiaErrori.push({
+                        domanda: this.domandaCorrente.domanda,
+                        opzioni: this.domandaCorrente.opzioni,
+                        rispostaData: this.domandaCorrente.opzioni[scelta],
+                        rispostaCorretta: this.domandaCorrente.opzioni[corretta],
+                        immagine: this.domandaCorrente.immagine
+                    });
+                }
+                this.poolDomande.push(this.domandaCorrente);
+            }
+            await this.salvaStatoCloud();
+            this.aggiornaStatistiche();
+            await this.caricaDatiUtente();
+        },
+
+        aggiornaStatistiche() {
+            let rimanenti = this.inAttesaProssima ? this.poolDomande.length : this.poolDomande.length + 1;
+            document.getElementById("statsQuiz").textContent = `Domande rimanenti: ${rimanenti} | ❌ Errori registrati: ${this.cronologiaErrori.length}`;
+        },
+
+        mostraElencoErrori() {
+            document.getElementById("lblNomeErrori").textContent = this.utenteCorrente;
+            let container = document.getElementById("containerListaErrori");
+            container.innerHTML = "";
+            if (this.cronologiaErrori.length === 0) {
+                container.innerHTML = "<p>Nessun errore registrato per questo allievo. Ottimo lavoro!</p>";
+            } else {
+                this.cronologiaErrori.forEach((err, idx) => {
+                    let card = document.createElement("div");
+                    card.className = "error-card";
+                    let imgHtml = err.immagine ? `<div style="text-align:center; margin:10px 0;"><img src="${err.immagine}" style="max-width:100%; max-height:140px; border-radius:4px;"></div>` : '';
+                    card.innerHTML = `
+                        <p><strong>#${idx + 1} - ${err.domanda}</strong></p>
+                        ${imgHtml}
+                        <p style="color:#721c24;">❌ <b>Tua risposta:</b> ${err.rispostaData}</p>
+                        <p style="color:#155724;">✔ <b>Risposta corretta:</b> ${err.rispostaCorretta}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+            this.mostraSezione("section-errori");
+        }
+    };
+
+    window.onload = () => App.init();
+
+    // Gestione tasto Invio rapido
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            if (document.getElementById("section-quiz").classList.contains("active")) {
+                App.gestisciAzione();
+            } else if (document.getElementById("section-user").classList.contains("active")) {
+                let inputName = document.getElementById("newNameInput");
+                if (document.activeElement === inputName && inputName.value.trim() !== "") {
+                    App.aggiungiAllievo();
+                } else {
+                    let sel = document.getElementById("userSelect").value;
+                    if (sel) App.selezionaAllievo();
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
